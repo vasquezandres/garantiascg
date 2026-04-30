@@ -1,0 +1,370 @@
+/* ================================================================
+   styles.css — estilos compartidos para crear y firmar
+   ================================================================ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+.page {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 8px;
+}
+
+.card {
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.15;
+  color: #111827;
+}
+
+h1 i { margin-right: 8px; color: #2563eb; }
+h1.firma i { color: #16a34a; }
+
+p {
+  margin: 0 0 14px;
+  color: #6b7280;
+  line-height: 1.45;
+  font-size: 15px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.field { margin-bottom: 0; }
+
+.field label {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.field label i {
+  margin-right: 5px;
+  color: #9ca3af;
+  width: 16px;
+  text-align: center;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.section { margin-top: 18px; }
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #111827;
+}
+
+.section-title i { margin-right: 6px; color: #9ca3af; }
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.item-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.item-row input { flex: 1; min-width: 0; }
+
+.btn-delete {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete:active { background: #fee2e2; }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+button {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+button:active { opacity: 0.85; }
+button i { margin-right: 8px; }
+
+.btn-primary  { background: #2563eb; color: #fff; }
+.btn-success  { background: #16a34a; color: #fff; }
+.btn-secondary{ background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; }
+.btn-whatsapp { background: #25d366; color: #fff; }
+.btn-share    { background: #8b5cf6; color: #fff; }
+.btn-add {
+  background: #f0f9ff;
+  color: #2563eb;
+  border: 1px dashed #93c5fd;
+}
+.btn-add:active { background: #e0f2fe; }
+
+.result {
+  margin-top: 16px;
+  padding: 14px;
+  background: #f0f9ff;
+  border: 1px solid #93c5fd;
+  border-radius: 12px;
+  display: none;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.result a {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  color: #2563eb;
+}
+
+.small-note {
+  display: none;
+  margin-top: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+}
+
+.small-note i { margin-right: 6px; }
+
+.footer-note {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.footer-note a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.loading { opacity: 0.7; pointer-events: none; }
+
+/* ===== Firma (canvas y específicos) ===== */
+.box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.box-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.box-title i { margin-right: 5px; }
+
+.meta-line {
+  margin: 2px 0;
+  font-size: 16px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.meta-line i {
+  margin-right: 6px;
+  color: #9ca3af;
+  width: 16px;
+  text-align: center;
+}
+
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.check-item input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.custom-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.check-item input[type="checkbox"]:checked + .custom-check {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.check-item input[type="checkbox"]:checked + .custom-check::after {
+  content: '✓';
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.check-text {
+  font-size: 15px;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.canvas-wrap {
+  background: #fff;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  margin-top: 8px;
+  position: relative;
+  touch-action: none;
+}
+
+#firmaCanvas {
+  width: 100%;
+  height: 200px;
+  display: block;
+  border-radius: 10px;
+  cursor: crosshair;
+}
+
+.canvas-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.canvas-actions button { flex: 1; }
+
+.msg {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.msg.success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.msg.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.msg i { margin-right: 6px; }
+
+@media (min-width: 768px) {
+  .page { padding: 30px 20px; }
+  .card { max-width: 640px; padding: 28px; }
+  .grid.two { grid-template-columns: 1fr 1fr; }
+  .actions.inline { flex-direction: row; flex-wrap: wrap; }
+  .actions.inline button { width: auto; }
+}

@@ -1,0 +1,5 @@
+# Cloudflare Pages redirects
+# Reescritura de URLs amigables -> archivos estáticos
+# (200 = rewrite, no redirect: la URL en la barra se mantiene)
+
+/f/*    /firmar.html?token=:splat   200
