@@ -12,7 +12,7 @@
 // ================================================================
 
 window.APP_CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/REEMPLAZAR_AQUI/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwSNFauC_ZcIjeWNi40CCNkn8EefSBdxvukkvWgzrsV0m0U2uDO4pJE3dFlSWGp4U-M/exec',
 
   // Nombre del proyecto / cliente actual (sólo cosmético)
   // Cuando uses multi-cliente real, esto se puede leer desde
