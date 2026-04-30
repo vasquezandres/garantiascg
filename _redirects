@@ -2,4 +2,6 @@
 # Reescritura de URLs amigables -> archivos estáticos
 # (200 = rewrite, no redirect: la URL en la barra se mantiene)
 
-/f/*    /firmar.html?token=:splat   200
+/f/*    /firmar.html    200
+/firmar /firmar.html    200
+/*      /index.html     200
