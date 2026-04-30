@@ -78,8 +78,8 @@ async function crearFormulario() {
     '<strong><i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:6px;"></i>Formulario creado correctamente.</strong><br><br>' +
     '<strong>ID:</strong> ' + resp.id + '<br>' +
     '<strong>Enlace de firma:</strong><br>' +
-    '<a href="' + resp.firmaUrl + '" target="_blank" rel="noopener">' + resp.firmaUrl + '</a>';
-
+    '<a href="' + resp.firmaUrl + '" target="_blank" rel="noopener">' + resp.firmaUrl + '</a>' +
+    '<br><br><small style="color:#6b7280">Versión: ' + (resp.version || 'desconocida') + '</small>';
   acciones.style.display = 'flex';
 }
 
