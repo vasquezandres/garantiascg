@@ -24,11 +24,13 @@ function normalizarHora(valor) {
 }
 
 function getTokenFromUrl() {
+  // 1. query string
   const params = new URLSearchParams(window.location.search);
   const queryToken = params.get('token');
 
   if (queryToken) return queryToken.trim();
 
+  // 2. path /f/TOKEN
   const parts = window.location.pathname.split('/').filter(Boolean);
 
   if (parts[0] === 'f' && parts[1]) {
