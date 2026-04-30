@@ -24,15 +24,11 @@ function normalizarHora(valor) {
 }
 
 function getTokenFromUrl() {
-  // Caso 1: /firmar.html?token=TOKEN
   const params = new URLSearchParams(window.location.search);
   const queryToken = params.get('token');
 
-  if (queryToken) {
-    return queryToken.trim();
-  }
+  if (queryToken) return queryToken.trim();
 
-  // Caso 2: /f/TOKEN
   const parts = window.location.pathname.split('/').filter(Boolean);
 
   if (parts[0] === 'f' && parts[1]) {
@@ -44,6 +40,10 @@ function getTokenFromUrl() {
 
 async function cargarFormulario() {
   token = getTokenFromUrl();
+
+  console.log('pathname:', window.location.pathname);
+  console.log('search:', window.location.search);
+  console.log('token:', token);
 
   if (!token) {
     document.getElementById('contenido').innerHTML =
