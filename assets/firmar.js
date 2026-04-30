@@ -23,9 +23,27 @@ function normalizarHora(valor) {
   return valor;
 }
 
+function getTokenFromUrl() {
+  // Caso 1: /firmar.html?token=TOKEN
+  const params = new URLSearchParams(window.location.search);
+  const queryToken = params.get('token');
+
+  if (queryToken) {
+    return queryToken.trim();
+  }
+
+  // Caso 2: /f/TOKEN
+  const parts = window.location.pathname.split('/').filter(Boolean);
+
+  if (parts[0] === 'f' && parts[1]) {
+    return decodeURIComponent(parts[1]).trim();
+  }
+
+  return '';
+}
+
 async function cargarFormulario() {
-  const params = new URLSearchParams(location.search);
-  token = params.get('token') || '';
+  token = getTokenFromUrl();
 
   if (!token) {
     document.getElementById('contenido').innerHTML =
