@@ -193,13 +193,26 @@ function setLoadingGenerar(isLoading) {
 }
 
 window.addEventListener('DOMContentLoaded', function () {
-  // Pre-llenar fecha y hora locales
+  // Pre-llenar fecha y hora locales (FORMA CORRECTA)
   const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+
   const fechaEl = document.getElementById('fecha');
   const horaEl = document.getElementById('hora');
-  if (fechaEl) fechaEl.value = local.toISOString().slice(0, 10);
-  if (horaEl) horaEl.value = local.toTimeString().slice(0, 5);
+
+  if (fechaEl && !fechaEl.value) {
+    fechaEl.value = `${yyyy}-${mm}-${dd}`;
+  }
+
+  if (horaEl && !horaEl.value) {
+    horaEl.value = `${hh}:${min}`;
+  }
 
   // Ítems por defecto
   addItem('Revisión de pintura y acabados');
