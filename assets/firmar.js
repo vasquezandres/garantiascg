@@ -1,5 +1,6 @@
 // ================================================================
-// firmar.js — lógica de la pantalla de firma (Cloudflare Pages)
+// firmar.js — pantalla de firma
+// Mantiene los IDs y nombres de funciones para compatibilidad.
 // ================================================================
 
 let isDrawing = false;
@@ -23,43 +24,27 @@ function normalizarHora(valor) {
   return valor;
 }
 
-function getTokenFromUrl() {
-  // 1. query string
-  const params = new URLSearchParams(window.location.search);
-  const queryToken = params.get('token');
-
-  if (queryToken) return queryToken.trim();
-
-  // 2. path /f/TOKEN
-  const parts = window.location.pathname.split('/').filter(Boolean);
-
-  if (parts[0] === 'f' && parts[1]) {
-    return decodeURIComponent(parts[1]).trim();
-  }
-
-  return '';
-}
-
 async function cargarFormulario() {
-  token = getTokenFromUrl();
+  const params = new URLSearchParams(location.search);
+  token = params.get('token') || '';
 
-  console.log('pathname:', window.location.pathname);
-  console.log('search:', window.location.search);
-  console.log('token:', token);
+  const cont = document.getElementById('contenido');
 
   if (!token) {
-    document.getElementById('contenido').innerHTML =
-      '<div class="msg error"><i class="fa-solid fa-circle-xmark"></i>Token no proporcionado.</div>';
+    cont.innerHTML =
+      '<div class="msg error" style="display:flex;">' +
+      '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>' +
+      '<div>Enlace inválido: falta el token.</div></div>';
     return;
   }
 
   const resp = await window.api('obtener', { token: token });
 
   if (!resp || !resp.ok) {
-    document.getElementById('contenido').innerHTML =
-      '<div class="msg error"><i class="fa-solid fa-circle-xmark"></i>' +
-      escapeHtml((resp && resp.message) || 'No se pudo cargar el formulario.') +
-      '</div>';
+    cont.innerHTML =
+      '<div class="msg error" style="display:flex;">' +
+      '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>' +
+      '<div>' + escapeHtml((resp && resp.message) || 'No se pudo cargar el formulario.') + '</div></div>';
     return;
   }
 
@@ -67,127 +52,211 @@ async function cargarFormulario() {
 }
 
 function renderFormulario(data) {
-  // Si ya está firmado, mostramos un estado de "ya firmado" en lugar
-  // del formulario.
+  const cont = document.getElementById('contenido');
+
+  // Si ya está firmado: vista de "ya firmado" sin posibilidad de re-firmar
   if (data.estado === 'firmado') {
-    document.getElementById('contenido').innerHTML =
-      '<div class="msg success"><i class="fa-solid fa-circle-check"></i>' +
-      'Este formulario ya fue firmado el ' + escapeHtml(data.fecha_firma) +
-      ' a las ' + escapeHtml(data.hora_firma) + '.</div>' +
-      (data.pdf_url
-        ? '<div style="margin-top:14px;text-align:center;"><a href="' +
-          escapeHtml(data.pdf_url) + '" target="_blank" rel="noopener" ' +
-          'style="color:#2563eb;font-weight:600;">Ver PDF firmado</a></div>'
-        : '');
+    cont.innerHTML =
+      '<div class="signed-state">' +
+        '<div class="signed-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>' +
+        '<h2>Este formulario ya fue firmado</h2>' +
+        '<p>Firmado el <strong>' + escapeHtml(data.fecha_firma || '') + '</strong>' +
+        (data.hora_firma ? ' a las <strong>' + escapeHtml(normalizarHora(data.hora_firma)) + '</strong>' : '') +
+        '.</p>' +
+        (data.pdf_url
+          ? '<a class="btn btn-primary" href="' + escapeHtml(data.pdf_url) + '" target="_blank" rel="noopener">' +
+            '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>Ver PDF firmado</a>'
+          : '') +
+      '</div>';
     return;
   }
 
-  const itemsHtml = (data.items || []).map(item =>
-    '<label class="check-item">' +
+  const itemsHtml = (data.items || []).map((item, i) =>
+    '<label class="check-item" data-index="' + i + '">' +
       '<input type="checkbox" class="chk">' +
-      '<span class="custom-check"></span>' +
+      '<span class="custom-check" aria-hidden="true"></span>' +
       '<span class="check-text">' + escapeHtml(item.texto || '') + '</span>' +
     '</label>'
   ).join('');
 
-  document.getElementById('contenido').innerHTML =
+  cont.innerHTML =
+    // Datos del formulario
     '<div class="box">' +
-      '<div class="box-title"><i class="fa-solid fa-info-circle"></i>Datos del formulario</div>' +
-      '<div class="meta-line"><i class="fa-solid fa-calendar"></i><strong>Fecha:</strong> ' + escapeHtml(data.fecha_creacion || '') + '</div>' +
-      '<div class="meta-line"><i class="fa-solid fa-clock"></i><strong>Hora:</strong> ' + escapeHtml(normalizarHora(data.hora_creacion || '')) + '</div>' +
-      '<div class="meta-line"><i class="fa-solid fa-building"></i><strong>Proyecto:</strong> ' + escapeHtml(data.proyecto || '') + '</div>' +
-      '<div class="meta-line"><i class="fa-solid fa-tower-observation"></i><strong>Torre:</strong> ' + escapeHtml(data.torre || '') + '</div>' +
-      '<div class="meta-line"><i class="fa-solid fa-door-open"></i><strong>Apto:</strong> ' + escapeHtml(data.apartamento || '') + '</div>' +
-      '<div class="meta-line"><i class="fa-solid fa-user"></i><strong>Cliente:</strong> ' + escapeHtml(data.cliente || '') + '</div>' +
-    '</div>' +
-
-    '<div class="box">' +
-      '<div class="section-title"><i class="fa-solid fa-comment-dots"></i>Observaciones</div>' +
-      '<div class="meta-line">' + escapeHtml(data.observaciones || 'Sin observaciones') + '</div>' +
-    '</div>' +
-
-    '<div class="box">' +
-      '<div class="section-title"><i class="fa-solid fa-list-check"></i>Confirma todos los puntos</div>' +
-      '<div class="checklist">' + itemsHtml + '</div>' +
-    '</div>' +
-
-    '<div class="field">' +
-      '<label for="nombre"><i class="fa-solid fa-user-pen"></i>Nombre</label>' +
-      '<input id="nombre" type="text" placeholder="Tu nombre completo">' +
-    '</div>' +
-
-    '<div class="field">' +
-      '<label for="correo"><i class="fa-solid fa-envelope"></i>Correo (opcional)</label>' +
-      '<input id="correo" type="email" placeholder="correo@ejemplo.com">' +
-    '</div>' +
-
-    '<div class="field">' +
-      '<label><i class="fa-solid fa-signature"></i>Firma</label>' +
-      '<div class="canvas-wrap"><canvas id="firmaCanvas"></canvas></div>' +
-      '<div class="canvas-actions">' +
-        '<button class="btn-secondary" type="button" onclick="limpiar()"><i class="fa-solid fa-eraser"></i>Limpiar</button>' +
+      '<div class="box-title"><i class="fa-solid fa-info-circle" aria-hidden="true"></i>Datos del formulario</div>' +
+      '<div class="meta-grid">' +
+        metaLine('Proyecto', data.proyecto) +
+        metaLine('Cliente', data.cliente) +
+        metaLine('Torre', data.torre) +
+        metaLine('Apto', data.apartamento) +
+        metaLine('Fecha', data.fecha_creacion) +
+        metaLine('Hora', normalizarHora(data.hora_creacion)) +
       '</div>' +
     '</div>' +
 
-    '<div class="actions">' +
-      '<button id="btnFirmar" class="btn-success" type="button" onclick="firmar()"><i class="fa-solid fa-check"></i>Firmar</button>' +
+    // Observaciones
+    (data.observaciones
+      ? '<div class="box">' +
+          '<div class="box-title"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i>Observaciones</div>' +
+          '<div style="font-size:15px;line-height:1.5;color:#374151;">' + escapeHtml(data.observaciones) + '</div>' +
+        '</div>'
+      : '') +
+
+    // Checklist
+    '<div class="section">' +
+      '<div class="section-title"><i class="fa-solid fa-list-check" aria-hidden="true"></i>Confirma todos los puntos</div>' +
+      '<div class="checklist">' + itemsHtml + '</div>' +
     '</div>' +
 
-    '<div id="msg" class="msg" style="display:none;"></div>';
+    // Datos del firmante
+    '<div class="section">' +
+      '<div class="section-title"><i class="fa-solid fa-user-pen" aria-hidden="true"></i>Tus datos</div>' +
+      '<div class="grid">' +
+        '<div class="field">' +
+          '<label for="nombre"><i class="fa-solid fa-user" aria-hidden="true"></i>Nombre completo</label>' +
+          '<input id="nombre" type="text" placeholder="Tu nombre completo" autocomplete="name">' +
+        '</div>' +
+        '<div class="field">' +
+          '<label for="correo"><i class="fa-solid fa-envelope" aria-hidden="true"></i>Correo' +
+            ' <span class="optional">(opcional)</span></label>' +
+          '<input id="correo" type="email" placeholder="correo@ejemplo.com" autocomplete="email" inputmode="email">' +
+          '<div class="hint">Si lo indicas, recibirás copia del PDF firmado.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
 
+    // Firma
+    '<div class="section">' +
+      '<div class="section-title"><i class="fa-solid fa-signature" aria-hidden="true"></i>Firma</div>' +
+      '<div id="signatureWrap" class="signature-wrap">' +
+        '<canvas id="firmaCanvas" aria-label="Área de firma"></canvas>' +
+        '<div class="signature-placeholder" id="signaturePlaceholder">' +
+          '<span><i class="fa-solid fa-pen" aria-hidden="true"></i>Firma aquí con tu dedo o ratón</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="signature-actions">' +
+        '<button id="btnLimpiar" class="btn btn-ghost" type="button" onclick="limpiar()">' +
+          '<i class="fa-solid fa-eraser" aria-hidden="true"></i>Limpiar firma' +
+        '</button>' +
+      '</div>' +
+    '</div>' +
+
+    // Acción principal
+    '<div class="actions">' +
+      '<button id="btnFirmar" class="btn btn-success" type="button" onclick="firmar()">' +
+        '<i class="fa-solid fa-check" aria-hidden="true"></i>Firmar y enviar' +
+      '</button>' +
+    '</div>' +
+
+    // Mensaje de estado
+    '<div id="msg" class="msg" role="status" aria-live="polite"></div>';
+
+  bindCheckItems();
   initCanvas();
 }
 
+function metaLine(label, value) {
+  if (value === undefined || value === null || value === '') return '';
+  return '<div class="meta-line">' +
+    '<span class="meta-label">' + escapeHtml(label) + '</span>' +
+    '<span class="meta-value">' + escapeHtml(String(value)) + '</span>' +
+    '</div>';
+}
+
+function bindCheckItems() {
+  // Reflejamos visualmente el estado checked en la tarjeta
+  document.querySelectorAll('.check-item').forEach(label => {
+    const input = label.querySelector('input.chk');
+    if (!input) return;
+    const sync = () => label.classList.toggle('checked', input.checked);
+    input.addEventListener('change', sync);
+    sync();
+  });
+}
+
+// ================================================================
+// Canvas de firma — eventos unificados con Pointer Events
+// ================================================================
+
 function initCanvas() {
+  const wrap = document.getElementById('signatureWrap');
   const canvas = document.getElementById('firmaCanvas');
   const ctx = canvas.getContext('2d');
+
+  let lastX = 0, lastY = 0;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
+
+    // Preservar trazo si ya existía
+    let prev = null;
+    try {
+      if (canvas.width && canvas.height && hasSignature) {
+        prev = canvas.toDataURL('image/png');
+      }
+    } catch (e) { /* canvas vacío */ }
+
+    canvas.width = Math.round(rect.width * ratio);
+    canvas.height = Math.round(rect.height * ratio);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(ratio, ratio);
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#111827';
+
+    if (prev) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = prev;
+    }
   }
 
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX !== undefined ? e.clientX : e.touches[0].clientX) - rect.left,
-      y: (e.clientY !== undefined ? e.clientY : e.touches[0].clientY) - rect.top
-    };
+    const cx = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const cy = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    return { x: cx - rect.left, y: cy - rect.top };
   }
 
   function start(e) {
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     isDrawing = true;
-    hasSignature = true;
+    if (!hasSignature) {
+      hasSignature = true;
+      wrap.classList.add('has-signature');
+    }
     const p = getPos(e);
+    lastX = p.x; lastY = p.y;
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
+    ctx.moveTo(lastX, lastY);
+    // Punto inicial visible aunque sea un toque sin movimiento
+    ctx.lineTo(lastX + 0.01, lastY + 0.01);
+    ctx.stroke();
   }
 
   function move(e) {
     if (!isDrawing) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
+    lastX = p.x; lastY = p.y;
   }
 
   function end() { isDrawing = false; }
 
   resize();
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 200));
 
-  // Eventos unificados de puntero (mouse + touch)
   if (window.PointerEvent) {
-    canvas.addEventListener('pointerdown', start);
+    canvas.addEventListener('pointerdown', e => {
+      try { canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      start(e);
+    });
     canvas.addEventListener('pointermove', move);
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointerleave', end);
@@ -205,9 +274,12 @@ function initCanvas() {
 
 function limpiar() {
   const canvas = document.getElementById('firmaCanvas');
+  const wrap = document.getElementById('signatureWrap');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   hasSignature = false;
+  if (wrap) wrap.classList.remove('has-signature');
 }
 
 function getTrimmedSignatureDataURL() {
@@ -254,21 +326,30 @@ function getTrimmedSignatureDataURL() {
 
 async function firmar() {
   const checks = Array.from(document.querySelectorAll('.chk')).map(c => c.checked);
-  const nombre = document.getElementById('nombre').value.trim();
-  const correo = document.getElementById('correo').value.trim();
-  const msg = document.getElementById('msg');
+  const nombre = (document.getElementById('nombre').value || '').trim();
+  const correo = (document.getElementById('correo').value || '').trim();
 
-  msg.style.display = 'none';
-  msg.className = 'msg';
-  msg.innerHTML = '';
+  hideMsg();
 
-  if (!checks.length) { alert('No hay puntos para aprobar.'); return; }
-  if (checks.some(v => !v)) {
-    alert('Debes aprobar todos los puntos. Si no estás de acuerdo, contacta a la persona que te envió el formulario.');
+  if (!checks.length) {
+    showMsg('error', 'No hay puntos para aprobar.');
     return;
   }
-  if (!nombre) { alert('Ingresa tu nombre.'); return; }
-  if (!hasSignature) { alert('La firma es obligatoria.'); return; }
+  if (checks.some(v => !v)) {
+    showMsg('error', 'Debes aprobar todos los puntos. Si no estás de acuerdo, contacta a la persona que te envió el formulario.');
+    scrollToEl('.checklist');
+    return;
+  }
+  if (!nombre) {
+    showMsg('error', 'Ingresa tu nombre.');
+    document.getElementById('nombre').focus();
+    return;
+  }
+  if (!hasSignature) {
+    showMsg('error', 'La firma es obligatoria.');
+    scrollToEl('#signatureWrap');
+    return;
+  }
 
   setLoadingFirmar(true);
 
@@ -281,24 +362,47 @@ async function firmar() {
   });
 
   setLoadingFirmar(false);
-  msg.style.display = 'block';
 
   if (!resp || !resp.ok) {
-    msg.className = 'msg error';
-    msg.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>' +
-      escapeHtml((resp && resp.message) || 'No se pudo completar la firma.');
+    showMsg('error', (resp && resp.message) || 'No se pudo completar la firma.');
     return;
   }
 
-  msg.className = 'msg success';
-  msg.innerHTML = '<i class="fa-solid fa-circle-check"></i>' + escapeHtml(resp.message || 'Firmado correctamente.');
+  showMsg('success', resp.message || 'Firmado correctamente.');
 
-  // Deshabilitar botón para evitar doble firma
+  // Bloquear UI para evitar doble firma
+  document.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+  document.querySelectorAll('.check-item').forEach(el => { el.style.pointerEvents = 'none'; });
+
   const btn = document.getElementById('btnFirmar');
   if (btn) {
     btn.disabled = true;
-    btn.classList.add('loading');
+    btn.innerHTML = '<i class="fa-solid fa-check-double" aria-hidden="true"></i>Firmado';
   }
+  const btnL = document.getElementById('btnLimpiar');
+  if (btnL) btnL.disabled = true;
+}
+
+function showMsg(kind, text) {
+  const msg = document.getElementById('msg');
+  if (!msg) return;
+  msg.className = 'msg ' + kind;
+  msg.style.display = 'flex';
+  const icon = kind === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
+  msg.innerHTML = '<i class="fa-solid ' + icon + '" aria-hidden="true"></i><div>' + escapeHtml(text) + '</div>';
+  msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideMsg() {
+  const msg = document.getElementById('msg');
+  if (!msg) return;
+  msg.style.display = 'none';
+  msg.innerHTML = '';
+}
+
+function scrollToEl(selector) {
+  const el = document.querySelector(selector);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function setLoadingFirmar(isLoading) {
@@ -306,12 +410,10 @@ function setLoadingFirmar(isLoading) {
   if (!btn) return;
   if (isLoading) {
     btn.disabled = true;
-    btn.classList.add('loading');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>Procesando firma...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>Procesando...';
   } else {
     btn.disabled = false;
-    btn.classList.remove('loading');
-    btn.innerHTML = '<i class="fa-solid fa-check"></i>Firmar';
+    btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>Firmar y enviar';
   }
 }
 

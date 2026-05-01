@@ -2,99 +2,153 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-  <title>Crear Formulario de Garantía</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="Sistema interno de formularios de garantía con firma digital.">
+
+  <title>Garantías</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Garantías">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
-  <div class="page">
+  <main class="page">
     <div class="card">
-      <h1><i class="fa-solid fa-file-shield"></i>Crear formulario de garantía</h1>
-      <p>Completa la información y genera el enlace que luego enviarás al cliente.</p>
 
-      <div class="grid two">
-        <div class="field">
-          <label for="proyecto"><i class="fa-solid fa-building"></i>Proyecto</label>
-          <input id="proyecto" type="text" placeholder="Nombre del proyecto">
+      <header class="header">
+        <div class="icon-badge"><i class="fa-solid fa-file-shield" aria-hidden="true"></i></div>
+        <div>
+          <h1>Crear formulario</h1>
+          <p class="subtitle">Genera el enlace de firma para enviar al cliente.</p>
         </div>
+      </header>
 
-        <div class="field">
-          <label for="torre"><i class="fa-solid fa-tower-observation"></i>Torre</label>
-          <input id="torre" type="text" placeholder="Ej: 500">
-        </div>
+      <!-- Datos del proyecto -->
+      <div class="section">
+        <div class="section-title"><i class="fa-solid fa-building" aria-hidden="true"></i>Garantias Condado Gardens</div>
+        <div class="grid two">
+          <div class="field">
+            <label for="proyecto"><i class="fa-solid fa-building" aria-hidden="true"></i>Proyecto</label>
+            <input id="proyecto" type="text" placeholder="Nombre del proyecto" autocomplete="organization">
+          </div>
 
-        <div class="field">
-          <label for="apartamento"><i class="fa-solid fa-door-open"></i>Apartamento</label>
-          <input id="apartamento" type="text" placeholder="Ej: 12F">
-        </div>
+          <div class="field">
+            <label for="torre"><i class="fa-solid fa-tower-observation" aria-hidden="true"></i>Torre</label>
+            <input id="torre" type="text" placeholder="Ej: 500" inputmode="text">
+          </div>
 
-        <div class="field">
-          <label for="cliente"><i class="fa-solid fa-user"></i>Cliente</label>
-          <input id="cliente" type="text" placeholder="Nombre del cliente">
-        </div>
+          <div class="field">
+            <label for="apartamento"><i class="fa-solid fa-door-open" aria-hidden="true"></i>Apartamento</label>
+            <input id="apartamento" type="text" placeholder="Ej: 12F" inputmode="text">
+          </div>
 
-        <div class="field">
-          <label for="fecha"><i class="fa-solid fa-calendar"></i>Fecha</label>
-          <input id="fecha" type="date">
-        </div>
+          <div class="field">
+            <label for="cliente"><i class="fa-solid fa-user" aria-hidden="true"></i>Cliente</label>
+            <input id="cliente" type="text" placeholder="Nombre del cliente" autocomplete="name">
+          </div>
 
-        <div class="field">
-          <label for="hora"><i class="fa-solid fa-clock"></i>Hora</label>
-          <input id="hora" type="time">
+          <div class="field">
+            <label for="fecha"><i class="fa-solid fa-calendar" aria-hidden="true"></i>Fecha</label>
+            <input id="fecha" type="date">
+          </div>
+
+          <div class="field">
+            <label for="hora"><i class="fa-solid fa-clock" aria-hidden="true"></i>Hora</label>
+            <input id="hora" type="time">
+          </div>
         </div>
       </div>
 
+      <!-- Notificaciones -->
       <div class="section">
-        <div class="field">
-          <label for="correo_responsable"><i class="fa-solid fa-envelope"></i>Correo del responsable</label>
-          <input id="correo_responsable" type="email" placeholder="correo@ejemplo.com">
+        <div class="section-title"><i class="fa-solid fa-envelope" aria-hidden="true"></i>Notificaciones</div>
+
+        <div class="grid">
+          <div class="field">
+            <label for="correo_responsable"><i class="fa-solid fa-user-tie" aria-hidden="true"></i>Correo del responsable</label>
+            <input id="correo_responsable" type="email" placeholder="responsable@ejemplo.com" autocomplete="email" inputmode="email">
+          </div>
+
+          <div class="field">
+            <label for="correos_cc">
+              <i class="fa-solid fa-envelopes-bulk" aria-hidden="true"></i>Copias internas
+              <span class="optional">(opcional)</span>
+            </label>
+            <input id="correos_cc" type="text" placeholder="gerencia@empresa.com, admin@empresa.com" autocomplete="off">
+            <div class="hint">Separa varios correos con coma. Recibirán copia al crear y al firmar.</div>
+          </div>
         </div>
       </div>
 
+      <!-- Ítems de garantía -->
       <div class="section">
-        <div class="field">
-          <label for="correos_cc"><i class="fa-solid fa-envelopes-bulk"></i>Copias internas <span style="font-weight:400;color:#9ca3af;">(opcional)</span></label>
-          <input id="correos_cc" type="text" placeholder="gerencia@empresa.com, admin@empresa.com">
-          <div class="hint">Separa varios correos con coma. Recibirán copia al crear y al firmar.</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title"><i class="fa-solid fa-list-check"></i>Ítems de garantía</div>
+        <div class="section-title"><i class="fa-solid fa-list-check" aria-hidden="true"></i>Ítems de garantía</div>
         <div id="itemsContainer" class="items-list"></div>
-        <button class="btn-add" type="button" onclick="addItem()"><i class="fa-solid fa-plus"></i>Agregar ítem</button>
+        <button class="btn btn-add" type="button" onclick="addItem()">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>Agregar ítem
+        </button>
       </div>
 
+      <!-- Observaciones -->
       <div class="section">
         <div class="field">
-          <label for="observaciones"><i class="fa-solid fa-comment-dots"></i>Observaciones</label>
+          <label for="observaciones"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i>Observaciones</label>
           <textarea id="observaciones" placeholder="Notas adicionales..."></textarea>
         </div>
       </div>
 
+      <!-- Acción principal -->
       <div class="actions">
-        <button id="btnGenerar" class="btn-primary" type="button" onclick="crearFormulario()"><i class="fa-solid fa-link"></i>Generar enlace de firma</button>
+        <button id="btnGenerar" class="btn btn-primary" type="button" onclick="crearFormulario()">
+          <i class="fa-solid fa-link" aria-hidden="true"></i>Generar enlace de firma
+        </button>
       </div>
 
-      <div id="resultado" class="result"></div>
+      <!-- Resultado -->
+      <div id="resultado" class="result" role="status" aria-live="polite"></div>
 
-      <div id="accionesEnlace" class="actions inline" style="display:none;">
-        <button class="btn-secondary" type="button" onclick="copiarEnlace()"><i class="fa-solid fa-copy"></i>Copiar enlace</button>
-        <button class="btn-whatsapp" type="button" onclick="compartirWhatsApp()"><i class="fa-brands fa-whatsapp"></i>WhatsApp</button>
-        <button class="btn-share" type="button" onclick="compartirGeneral()"><i class="fa-solid fa-share-nodes"></i>Compartir</button>
+      <!-- Acciones del enlace generado -->
+      <div id="accionesEnlace" class="actions row" style="display:none;">
+        <button class="btn btn-secondary" type="button" onclick="copiarEnlace()">
+          <i class="fa-solid fa-copy" aria-hidden="true"></i>Copiar
+        </button>
+        <button class="btn btn-whatsapp" type="button" onclick="compartirWhatsApp()">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>WhatsApp
+        </button>
+        <button class="btn btn-share" type="button" onclick="compartirGeneral()">
+          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>Compartir
+        </button>
       </div>
 
-      <div id="copiadoMsg" class="small-note"><i class="fa-solid fa-circle-check"></i>Enlace copiado correctamente.</div>
+      <div id="copiadoMsg" class="small-note" role="status" aria-live="polite">
+        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>Enlace copiado correctamente.
+      </div>
 
       <div class="footer-note">
         Sistema desarrollado por <a href="https://solutech.com.pa" target="_blank" rel="noopener">Solutech Panamá</a>
       </div>
     </div>
-  </div>
+  </main>
 
   <script src="/assets/config.js"></script>
   <script src="/assets/api.js"></script>
   <script src="/assets/crear.js"></script>
+
+  <!-- PWA: registrar service worker SOLO en la app interna -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js').catch(function () { /* silencioso */ });
+      });
+    }
+  </script>
 </body>
 </html>

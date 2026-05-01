@@ -1,8 +1,18 @@
 // ================================================================
-// crear.js — lógica del formulario de creación (Cloudflare Pages)
+// crear.js — formulario de creación
+// Mantiene los IDs y nombres de funciones para compatibilidad.
 // ================================================================
 
 let ultimoEnlaceGenerado = '';
+
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
 
 function addItem(value) {
   const container = document.getElementById('itemsContainer');
@@ -18,7 +28,8 @@ function addItem(value) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'btn-delete';
-  btn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+  btn.setAttribute('aria-label', 'Eliminar ítem');
+  btn.innerHTML = '<i class="fa-solid fa-trash-can" aria-hidden="true"></i>';
   btn.onclick = function () { row.remove(); };
 
   row.appendChild(input);
@@ -46,8 +57,24 @@ async function crearFormulario() {
     cliente_id: (window.APP_CONFIG && window.APP_CONFIG.CLIENTE_ID) || ''
   };
 
-  if (!data.proyecto || !data.cliente || !data.fecha || !data.hora || !data.correo_responsable || items.length === 0) {
-    alert('Completa al menos proyecto, cliente, fecha, hora, correo del responsable y un ítem.');
+  // Validación amigable: enfoca el primer campo faltante
+  const required = [
+    { id: 'proyecto', label: 'el proyecto' },
+    { id: 'cliente', label: 'el cliente' },
+    { id: 'fecha', label: 'la fecha' },
+    { id: 'hora', label: 'la hora' },
+    { id: 'correo_responsable', label: 'el correo del responsable' }
+  ];
+  for (const r of required) {
+    if (!data[r.id]) {
+      mostrarResultadoError('Por favor completa ' + r.label + '.');
+      const el = document.getElementById(r.id);
+      if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      return;
+    }
+  }
+  if (items.length === 0) {
+    mostrarResultadoError('Debes agregar al menos un ítem de garantía.');
     return;
   }
 
@@ -57,40 +84,66 @@ async function crearFormulario() {
 
   setLoadingGenerar(false);
 
-  const box = document.getElementById('resultado');
-  const acciones = document.getElementById('accionesEnlace');
   const copiadoMsg = document.getElementById('copiadoMsg');
-  copiadoMsg.style.display = 'none';
+  if (copiadoMsg) copiadoMsg.style.display = 'none';
 
   if (!resp || !resp.ok) {
-    box.style.display = 'block';
-    box.innerHTML = '<strong><i class="fa-solid fa-circle-xmark" style="color:#dc2626;margin-right:6px;"></i>Error:</strong> ' +
-      (resp && resp.message ? resp.message : 'No se pudo crear el formulario.');
-    acciones.style.display = 'none';
+    mostrarResultadoError((resp && resp.message) || 'No se pudo crear el formulario.');
+    document.getElementById('accionesEnlace').style.display = 'none';
     ultimoEnlaceGenerado = '';
     return;
   }
 
   ultimoEnlaceGenerado = resp.firmaUrl;
+  mostrarResultadoExito(resp);
 
+  document.getElementById('accionesEnlace').style.display = 'flex';
+  document.getElementById('resultado').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function mostrarResultadoExito(resp) {
+  const box = document.getElementById('resultado');
+  box.className = 'result success';
   box.style.display = 'block';
   box.innerHTML =
-    '<strong><i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:6px;"></i>Formulario creado correctamente.</strong><br><br>' +
-    '<strong>ID:</strong> ' + resp.id + '<br>' +
-    '<strong>Enlace de firma:</strong><br>' +
-    '<a href="' + resp.firmaUrl + '" target="_blank" rel="noopener">' + resp.firmaUrl + '</a>' +
-    '<br><br><small style="color:#6b7280">Versión: ' + (resp.version || 'desconocida') + '</small>';
-  acciones.style.display = 'flex';
+    '<div class="result-title success">' +
+      '<i class="fa-solid fa-circle-check" aria-hidden="true"></i>' +
+      'Formulario creado correctamente' +
+    '</div>' +
+    '<div class="result-id">' + escapeHtml(resp.id) + '</div>' +
+    '<div style="margin-top:8px;font-size:13px;color:#374151;font-weight:600;">Enlace de firma:</div>' +
+    '<div class="result-link">' +
+      '<a href="' + escapeHtml(resp.firmaUrl) + '" target="_blank" rel="noopener">' +
+        escapeHtml(resp.firmaUrl) +
+      '</a>' +
+    '</div>';
+}
+
+function mostrarResultadoError(mensaje) {
+  const box = document.getElementById('resultado');
+  box.className = 'result error';
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div class="result-title error">' +
+      '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>' +
+      escapeHtml(mensaje) +
+    '</div>';
 }
 
 async function copiarEnlace() {
-  if (!ultimoEnlaceGenerado) { alert('Primero debes generar un enlace.'); return; }
+  if (!ultimoEnlaceGenerado) {
+    alert('Primero debes generar un enlace.');
+    return;
+  }
 
   try {
     await navigator.clipboard.writeText(ultimoEnlaceGenerado);
-    document.getElementById('copiadoMsg').style.display = 'block';
+    const note = document.getElementById('copiadoMsg');
+    note.style.display = 'block';
+    setTimeout(() => { note.style.display = 'none'; }, 2500);
   } catch (error) {
-    alert('No se pudo copiar automáticamente. Copia el enlace manualmente.');
+    // Fallback: prompt para copia manual
+    window.prompt('Copia el enlace:', ultimoEnlaceGenerado);
   }
 }
 
@@ -119,7 +172,7 @@ function compartirGeneral() {
       title: 'Formulario de Garantía',
       text: texto,
       url: ultimoEnlaceGenerado
-    }).catch(() => {});
+    }).catch(() => { /* el usuario canceló */ });
   } else {
     const subject = encodeURIComponent('Formulario de Garantía');
     const body = encodeURIComponent(texto + '\n\n' + ultimoEnlaceGenerado);
@@ -132,21 +185,23 @@ function setLoadingGenerar(isLoading) {
   if (!btn) return;
   if (isLoading) {
     btn.disabled = true;
-    btn.classList.add('loading');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>Generando enlace...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>Generando enlace...';
   } else {
     btn.disabled = false;
-    btn.classList.remove('loading');
-    btn.innerHTML = '<i class="fa-solid fa-link"></i>Generar enlace de firma';
+    btn.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i>Generar enlace de firma';
   }
 }
 
 window.addEventListener('DOMContentLoaded', function () {
+  // Pre-llenar fecha y hora locales
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  document.getElementById('fecha').value = local.toISOString().slice(0, 10);
-  document.getElementById('hora').value = local.toTimeString().slice(0, 5);
+  const fechaEl = document.getElementById('fecha');
+  const horaEl = document.getElementById('hora');
+  if (fechaEl) fechaEl.value = local.toISOString().slice(0, 10);
+  if (horaEl) horaEl.value = local.toTimeString().slice(0, 5);
 
+  // Ítems por defecto
   addItem('Revisión de pintura y acabados');
   addItem('Ajuste de puertas o ventanas');
   addItem('Corrección de filtración menor');
