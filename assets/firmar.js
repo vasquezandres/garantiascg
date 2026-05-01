@@ -1,11 +1,31 @@
 // ================================================================
 // firmar.js — pantalla de firma
-// Mantiene los IDs y nombres de funciones para compatibilidad.
+//
+// Mantiene los IDs y nombres de funciones globales para
+// compatibilidad con el HTML y backend actuales.
+//
+// Estados de UI gestionados:
+//   1) loading      — tarjeta inicial mientras llega el formulario
+//   2) ready        — formulario visible, botón deshabilitado hasta
+//                     que TODO esté completo (checks + nombre + firma)
+//   3) processing   — botón deshabilitado, formulario bloqueado,
+//                     mensaje "Generando documento..."
+//   4) success      — tarjeta verde, todo bloqueado
+//   5) error        — mensaje rojo, botón se rehabilita si los datos
+//                     siguen completos
 // ================================================================
 
-let isDrawing = false;
-let hasSignature = false;
-let token = '';
+const state = {
+  isProcessing: false,
+  isSubmitted: false,
+  hasSignature: false,
+  isDrawing: false,
+  token: ''
+};
+
+// ================================================================
+// Utilidades
+// ================================================================
 
 function escapeHtml(text) {
   return String(text)
@@ -24,31 +44,37 @@ function normalizarHora(valor) {
   return valor;
 }
 
+// ================================================================
+// Carga inicial
+// ================================================================
+
 async function cargarFormulario() {
   const params = new URLSearchParams(location.search);
-  token = params.get('token') || '';
+  state.token = params.get('token') || '';
 
   const cont = document.getElementById('contenido');
 
-  if (!token) {
-    cont.innerHTML =
-      '<div class="msg error" style="display:flex;">' +
-      '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>' +
-      '<div>Enlace inválido: falta el token.</div></div>';
+  if (!state.token) {
+    cont.innerHTML = renderErrorEstado('Enlace inválido: falta el token.');
     return;
   }
 
-  const resp = await window.api('obtener', { token: token });
+  const resp = await window.api('obtener', { token: state.token });
 
   if (!resp || !resp.ok) {
-    cont.innerHTML =
-      '<div class="msg error" style="display:flex;">' +
-      '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>' +
-      '<div>' + escapeHtml((resp && resp.message) || 'No se pudo cargar el formulario.') + '</div></div>';
+    cont.innerHTML = renderErrorEstado((resp && resp.message) || 'No se pudo cargar el formulario.');
     return;
   }
 
   renderFormulario(resp.data);
+}
+
+function renderErrorEstado(mensaje) {
+  return '' +
+    '<div class="msg error" style="display:flex;">' +
+      '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>' +
+      '<div>' + escapeHtml(mensaje) + '</div>' +
+    '</div>';
 }
 
 function renderFormulario(data) {
@@ -140,18 +166,31 @@ function renderFormulario(data) {
       '</div>' +
     '</div>' +
 
-    // Acción principal
+    // Acción principal + ayuda
     '<div class="actions">' +
-      '<button id="btnFirmar" class="btn btn-success" type="button" onclick="firmar()">' +
+      '<button id="btnFirmar" class="btn btn-success is-disabled" type="button" onclick="firmar()" disabled>' +
         '<i class="fa-solid fa-check" aria-hidden="true"></i>Firmar y enviar' +
       '</button>' +
     '</div>' +
+    '<div id="helpText" class="help-text">' +
+      '<i class="fa-solid fa-circle-info" aria-hidden="true"></i>' +
+      '<span id="helpTextLabel">Marca todos los puntos, coloca tu nombre y firma para continuar.</span>' +
+    '</div>' +
 
-    // Mensaje de estado
-    '<div id="msg" class="msg" role="status" aria-live="polite"></div>';
+    // Mensaje de estado / procesamiento (oculto inicialmente)
+    '<div id="msg" class="msg" role="status" aria-live="polite"></div>' +
+    '<div id="processingState" class="processing-state" style="display:none;" aria-live="polite">' +
+      '<div class="processing-spinner" aria-hidden="true"></div>' +
+      '<div class="processing-text">' +
+        '<div class="processing-title">Procesando firma...</div>' +
+        '<div class="processing-subtitle">Estamos generando el documento firmado y enviando las notificaciones.</div>' +
+      '</div>' +
+    '</div>';
 
   bindCheckItems();
+  bindNombreInput();
   initCanvas();
+  updateButtonState(); // estado inicial
 }
 
 function metaLine(label, value) {
@@ -162,15 +201,99 @@ function metaLine(label, value) {
     '</div>';
 }
 
+// ================================================================
+// Validación reactiva
+// ================================================================
+
+/**
+ * Evalúa si todas las condiciones para firmar se cumplen y
+ * actualiza UI: botón habilitado/deshabilitado + texto de ayuda.
+ *
+ * Condiciones:
+ *  1. Todos los checks marcados (al menos uno debe existir)
+ *  2. Campo nombre con texto
+ *  3. Firma dibujada en canvas
+ *  4. No estar procesando ni ya enviado
+ */
+function updateButtonState() {
+  const btn = document.getElementById('btnFirmar');
+  const helpText = document.getElementById('helpText');
+  const helpLabel = document.getElementById('helpTextLabel');
+  if (!btn || !helpLabel) return;
+
+  // Si ya estamos procesando o ya se envió, no tocamos nada aquí
+  // (el control lo lleva firmar() y los estados de éxito/error).
+  if (state.isProcessing || state.isSubmitted) return;
+
+  const checks = Array.from(document.querySelectorAll('.chk'));
+  const todosChecks = checks.length > 0 && checks.every(c => c.checked);
+
+  const nombreEl = document.getElementById('nombre');
+  const tieneNombre = !!(nombreEl && nombreEl.value.trim());
+
+  const tieneFirma = state.hasSignature;
+
+  const listo = todosChecks && tieneNombre && tieneFirma;
+
+  if (listo) {
+    btn.disabled = false;
+    btn.classList.remove('is-disabled');
+    helpText.classList.add('ready');
+    helpLabel.textContent = 'Todo listo — puedes firmar y enviar.';
+    const icon = helpText.querySelector('i');
+    if (icon) {
+      icon.className = 'fa-solid fa-circle-check';
+      icon.style.color = 'var(--color-success)';
+    }
+  } else {
+    btn.disabled = true;
+    btn.classList.add('is-disabled');
+    helpText.classList.remove('ready');
+
+    // Mensaje específico según qué falta — ayuda al usuario a ver qué le queda
+    let mensaje;
+    if (!todosChecks && !tieneNombre && !tieneFirma) {
+      mensaje = 'Marca todos los puntos, coloca tu nombre y firma para continuar.';
+    } else if (!todosChecks) {
+      const faltan = checks.filter(c => !c.checked).length;
+      mensaje = faltan === 1
+        ? 'Falta marcar 1 punto para continuar.'
+        : 'Faltan marcar ' + faltan + ' puntos para continuar.';
+    } else if (!tieneNombre && !tieneFirma) {
+      mensaje = 'Coloca tu nombre y firma para continuar.';
+    } else if (!tieneNombre) {
+      mensaje = 'Coloca tu nombre para continuar.';
+    } else {
+      mensaje = 'Firma en el recuadro para continuar.';
+    }
+
+    helpLabel.textContent = mensaje;
+    const icon = helpText.querySelector('i');
+    if (icon) {
+      icon.className = 'fa-solid fa-circle-info';
+      icon.style.color = '';
+    }
+  }
+}
+
 function bindCheckItems() {
-  // Reflejamos visualmente el estado checked en la tarjeta
+  // Reflejamos visualmente el estado checked y disparamos validación
   document.querySelectorAll('.check-item').forEach(label => {
     const input = label.querySelector('input.chk');
     if (!input) return;
-    const sync = () => label.classList.toggle('checked', input.checked);
+    const sync = () => {
+      label.classList.toggle('checked', input.checked);
+      updateButtonState();
+    };
     input.addEventListener('change', sync);
     sync();
   });
+}
+
+function bindNombreInput() {
+  const nombreEl = document.getElementById('nombre');
+  if (!nombreEl) return;
+  nombreEl.addEventListener('input', updateButtonState);
 }
 
 // ================================================================
@@ -188,10 +311,9 @@ function initCanvas() {
     const rect = canvas.getBoundingClientRect();
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
 
-    // Preservar trazo si ya existía
     let prev = null;
     try {
-      if (canvas.width && canvas.height && hasSignature) {
+      if (canvas.width && canvas.height && state.hasSignature) {
         prev = canvas.toDataURL('image/png');
       }
     } catch (e) { /* canvas vacío */ }
@@ -220,23 +342,24 @@ function initCanvas() {
   }
 
   function start(e) {
+    if (state.isProcessing || state.isSubmitted) return;
     if (e.cancelable) e.preventDefault();
-    isDrawing = true;
-    if (!hasSignature) {
-      hasSignature = true;
+    state.isDrawing = true;
+    if (!state.hasSignature) {
+      state.hasSignature = true;
       wrap.classList.add('has-signature');
+      updateButtonState();
     }
     const p = getPos(e);
     lastX = p.x; lastY = p.y;
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
-    // Punto inicial visible aunque sea un toque sin movimiento
     ctx.lineTo(lastX + 0.01, lastY + 0.01);
     ctx.stroke();
   }
 
   function move(e) {
-    if (!isDrawing) return;
+    if (!state.isDrawing) return;
     if (e.cancelable) e.preventDefault();
     const p = getPos(e);
     ctx.beginPath();
@@ -246,7 +369,7 @@ function initCanvas() {
     lastX = p.x; lastY = p.y;
   }
 
-  function end() { isDrawing = false; }
+  function end() { state.isDrawing = false; }
 
   resize();
   window.addEventListener('resize', resize);
@@ -273,13 +396,15 @@ function initCanvas() {
 }
 
 function limpiar() {
+  if (state.isProcessing || state.isSubmitted) return;
   const canvas = document.getElementById('firmaCanvas');
   const wrap = document.getElementById('signatureWrap');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  hasSignature = false;
+  state.hasSignature = false;
   if (wrap) wrap.classList.remove('has-signature');
+  updateButtonState();
 }
 
 function getTrimmedSignatureDataURL() {
@@ -324,19 +449,23 @@ function getTrimmedSignatureDataURL() {
   return trimmedCanvas.toDataURL('image/png');
 }
 
+// ================================================================
+// Envío
+// ================================================================
+
 async function firmar() {
+  // Doble seguro: si ya estamos procesando o enviamos, salir
+  if (state.isProcessing || state.isSubmitted) return;
+
+  // Validaciones de respaldo (en caso de que alguien fuerce el click)
   const checks = Array.from(document.querySelectorAll('.chk')).map(c => c.checked);
   const nombre = (document.getElementById('nombre').value || '').trim();
   const correo = (document.getElementById('correo').value || '').trim();
 
   hideMsg();
 
-  if (!checks.length) {
-    showMsg('error', 'No hay puntos para aprobar.');
-    return;
-  }
-  if (checks.some(v => !v)) {
-    showMsg('error', 'Debes aprobar todos los puntos. Si no estás de acuerdo, contacta a la persona que te envió el formulario.');
+  if (!checks.length || checks.some(v => !v)) {
+    showMsg('error', 'Debes aprobar todos los puntos antes de firmar.');
     scrollToEl('.checklist');
     return;
   }
@@ -345,43 +474,136 @@ async function firmar() {
     document.getElementById('nombre').focus();
     return;
   }
-  if (!hasSignature) {
+  if (!state.hasSignature) {
     showMsg('error', 'La firma es obligatoria.');
     scrollToEl('#signatureWrap');
     return;
   }
 
-  setLoadingFirmar(true);
+  // Entrar a estado "processing"
+  setProcessingState(true);
 
   const resp = await window.api('firmar', {
-    token: token,
+    token: state.token,
     aprobados: checks,
     nombre_firmante: nombre,
     correo_firmante: correo,
     firma_base64: getTrimmedSignatureDataURL()
   });
 
-  setLoadingFirmar(false);
+  // Salir de "processing" — la decisión de éxito/error la toma el flujo siguiente
+  setProcessingState(false);
 
   if (!resp || !resp.ok) {
-    showMsg('error', (resp && resp.message) || 'No se pudo completar la firma.');
+    // Estado: error. Dejamos que el usuario reintente.
+    showMsg('error', (resp && resp.message) || 'No se pudo completar la firma. Intenta de nuevo.');
+    // Re-evaluar habilitación: si los datos siguen completos, el botón vuelve a estar listo
+    updateButtonState();
     return;
   }
 
-  showMsg('success', resp.message || 'Firmado correctamente.');
+  // Estado: éxito
+  setSuccessState(resp);
+}
 
-  // Bloquear UI para evitar doble firma
-  document.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
-  document.querySelectorAll('.check-item').forEach(el => { el.style.pointerEvents = 'none'; });
-
+function setProcessingState(isOn) {
+  state.isProcessing = isOn;
   const btn = document.getElementById('btnFirmar');
+  const helpText = document.getElementById('helpText');
+  const procBox = document.getElementById('processingState');
+  const limpiarBtn = document.getElementById('btnLimpiar');
+
+  // Bloqueo del formulario completo (visual + interactivo)
+  document.body.classList.toggle('form-locked', isOn);
+
+  if (isOn) {
+    // Botón con spinner
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('is-disabled');
+      btn.innerHTML = '<span class="spinner-sm" aria-hidden="true"></span>Procesando firma...';
+    }
+    if (limpiarBtn) limpiarBtn.disabled = true;
+    if (helpText) helpText.style.display = 'none';
+    if (procBox) procBox.style.display = 'flex';
+    hideMsg();
+  } else {
+    // Salimos del estado de procesando: restaurar texto del botón
+    if (btn) {
+      btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>Firmar y enviar';
+    }
+    if (limpiarBtn) limpiarBtn.disabled = false;
+    if (helpText) helpText.style.display = '';
+    if (procBox) procBox.style.display = 'none';
+  }
+}
+
+function setSuccessState(resp) {
+  state.isSubmitted = true;
+
+  // Ocultar UI de envío
+  const helpText = document.getElementById('helpText');
+  const btn = document.getElementById('btnFirmar');
+  const limpiarBtn = document.getElementById('btnLimpiar');
+  const procBox = document.getElementById('processingState');
+
+  if (helpText) helpText.style.display = 'none';
+  if (procBox) procBox.style.display = 'none';
+
+  // Bloquear todos los controles
+  document.body.classList.add('form-locked');
+  document.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('is-disabled');
     btn.innerHTML = '<i class="fa-solid fa-check-double" aria-hidden="true"></i>Firmado';
   }
-  const btnL = document.getElementById('btnLimpiar');
-  if (btnL) btnL.disabled = true;
+  if (limpiarBtn) limpiarBtn.disabled = true;
+
+  // Tarjeta de éxito grande
+  const msg = document.getElementById('msg');
+  if (msg) {
+    msg.style.display = 'none';
+    msg.innerHTML = '';
+  }
+
+  // Insertar tarjeta de éxito si no existe
+  let card = document.getElementById('successCard');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = 'successCard';
+    card.className = 'success-card';
+    // La insertamos justo después del botón
+    const actions = btn ? btn.closest('.actions') : null;
+    if (actions && actions.parentNode) {
+      actions.parentNode.insertBefore(card, actions.nextSibling);
+    } else {
+      document.getElementById('contenido').appendChild(card);
+    }
+  }
+
+  const mensaje = (resp && resp.message) || 'Formulario firmado correctamente.';
+  const pdfUrl = (resp && resp.pdf_url) || '';
+
+  card.innerHTML =
+    '<div class="success-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>' +
+    '<h3>Formulario firmado correctamente</h3>' +
+    '<p class="success-text">' + escapeHtml(mensaje) + '</p>' +
+    (pdfUrl
+      ? '<div class="success-actions">' +
+          '<a class="btn btn-primary" href="' + escapeHtml(pdfUrl) + '" target="_blank" rel="noopener">' +
+            '<i class="fa-solid fa-file-pdf" aria-hidden="true"></i>Ver PDF firmado' +
+          '</a>' +
+        '</div>'
+      : '');
+
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+
+// ================================================================
+// Mensajes inline
+// ================================================================
 
 function showMsg(kind, text) {
   const msg = document.getElementById('msg');
@@ -405,16 +627,8 @@ function scrollToEl(selector) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-function setLoadingFirmar(isLoading) {
-  const btn = document.getElementById('btnFirmar');
-  if (!btn) return;
-  if (isLoading) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>Procesando...';
-  } else {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-check" aria-hidden="true"></i>Firmar y enviar';
-  }
-}
+// ================================================================
+// Bootstrap
+// ================================================================
 
 window.addEventListener('DOMContentLoaded', cargarFormulario);

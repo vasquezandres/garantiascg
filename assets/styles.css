@@ -673,9 +673,27 @@ textarea:disabled {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 36px 16px;
+  text-align: center;
+  padding: 44px 20px;
+  background: #fafbfc;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   color: var(--color-text-muted);
   font-size: 14px;
+}
+
+.loading-state .loading-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 6px;
+  margin-top: 4px;
+}
+
+.loading-state .loading-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
 }
 
 .spinner {
@@ -685,11 +703,163 @@ textarea:disabled {
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+}
+
+/* Spinner pequeño para usar dentro de botones o inline */
+.spinner-sm {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -3px;
+  margin-right: 6px;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ================================================================
+   Botón deshabilitado (estado "no listo")
+   ================================================================ */
+
+/* Aplicamos esta clase explícitamente en lugar de confiar solo en
+   :disabled, para tener control total del look y compatibilidad. */
+.btn.is-disabled,
+.btn.is-disabled:active {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 1; /* anula el opacity del :disabled genérico */
+  transform: none;
+}
+
+.btn.is-disabled i { opacity: 0.7; }
+
+/* Texto de ayuda debajo del botón cuando no está listo */
+.help-text {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.help-text.ready {
+  color: var(--color-success-text);
+}
+
+.help-text i {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   Estado de procesamiento (envío en curso)
+   ================================================================ */
+
+.processing-state {
+  margin-top: 16px;
+  padding: 18px 16px;
+  background: var(--color-primary-light);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.processing-state .processing-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #bfdbfe;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.processing-state .processing-text { flex: 1; }
+
+.processing-state .processing-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 3px;
+  line-height: 1.35;
+}
+
+.processing-state .processing-subtitle {
+  font-size: 13px;
+  color: #1e40af;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+/* Bloqueo visual del formulario durante envío */
+.form-locked input,
+.form-locked textarea,
+.form-locked .check-item,
+.form-locked .signature-wrap,
+.form-locked .btn-ghost {
+  pointer-events: none;
+  opacity: 0.6;
+  user-select: none;
+}
+
+/* ================================================================
+   Tarjeta de éxito post-firma
+   ================================================================ */
+
+.success-card {
+  margin-top: 18px;
+  padding: 22px 18px;
+  background: var(--color-success-light);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.success-card .success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.success-card h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-success-text);
+}
+
+.success-card .success-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-success-text);
+  opacity: 0.85;
+}
+
+.success-card .success-actions {
+  margin-top: 16px;
 }
 
 /* ================================================================
